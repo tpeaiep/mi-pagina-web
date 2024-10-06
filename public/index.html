@@ -3,18 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Encriptar Contraseña</title>
+    <title>Password Encryption Web</title>
     <style>
         body {
-            background-color: #2d033b;
+            background: url('tipos-de-sistemas-de-encriptacion-de-datos.jpg') no-repeat center center fixed;
+            background-size: cover;
+            background-blend-mode: overlay;
+            background-color: rgba(45, 3, 59, 0.8);
             color: white;
             font-family: Arial, sans-serif;
             text-align: center;
         }
         .container {
-            margin-top: 100px;
+            margin-top: 50px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border-radius: 10px;
         }
-        input[type="password"], input[type="text"] {
+        input[type="password"], input[type="text"], input[type="email"] {
             width: 300px;
             padding: 10px;
             margin: 10px 0;
@@ -40,49 +46,157 @@
         .hidden {
             display: none;
         }
+        .error {
+            color: red;
+            margin-top: 20px;
+        }
+        h1 {
+            cursor: pointer;
+            display: inline-block;
+            margin-right: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px;
+        }
     </style>
 </head>
 <body>
+    <div class="header">
+        <h1 onclick="showSection('createUserSection')">Password Encryption Web</h1>
+        <div>
+            <button onclick="showSection('encryptionSection')">Encriptar Contraseña</button>
+            <button onclick="showSection('loginSection')">Iniciar Sesión</button>
+        </div>
+    </div>
+    <div class="container" id="createUserSection">
+        <h2>Crear Usuario</h2>
+        <form id="createUserForm">
+            <input type="text" id="username" placeholder="Nombre de Usuario" required><br>
+            <input type="email" id="email" placeholder="Correo Electrónico" required><br>
+            <button type="submit">Crear Usuario</button>
+        </form>
+    </div>
 
-    <div class="container">
-        <h1>Encriptar Contraseña</h1>
+    <div class="container hidden" id="encryptionSection">
+        <h2>Encriptar Contraseña</h2>
         <form id="encryptionForm">
-            <input type="password" id="password" placeholder="Ingresar Contraseña" required><br>
+            <input type="text" id="encryptionUser" placeholder="Nombre de Usuario" required value=""><br>
+            <input type="password" id="passwordToEncrypt" placeholder="Contraseña a Encriptar" required><br>
             <button type="submit">Encriptar</button>
         </form>
-
-        <div id="successMessage" class="result hidden">
+        <div id="encryptionSuccessMessage" class="result hidden">
             <h2>¡Encriptación exitosa!</h2>
+            <img src="candado.gif" alt="Imagen de éxito" style="width:200px;">
+        </div>
+        <div id="encryptionErrorMessage" class="error hidden"></div>
+    </div>
+
+    <div class="container hidden" id="loginSection">
+        <h2>Iniciar Sesión</h2>
+        <form id="loginForm">
+            <input type="text" id="loginUser" placeholder="Usuario" required><br>
+            <input type="password" id="loginPassword" placeholder="Contraseña" required><br>
+            <button type="submit">Iniciar Sesión</button>
+        </form>
+        <div id="loginSuccessMessage" class="result hidden">
+            <h2>¡Inicio de sesión exitoso!</h2>
             <img src="giphy.gif" alt="Imagen de éxito" style="width:200px;">
         </div>
+        <div id="loginErrorMessage" class="error hidden">La contraseña es incorrecta.</div>
     </div>
 
     <script>
+        let encryptedPassword = '';
+        let currentUsername = '';
+        
+        function showSection(sectionId) {
+            document.getElementById('createUserSection').classList.add("hidden");
+            document.getElementById('encryptionSection').classList.add("hidden");
+            document.getElementById('loginSection').classList.add("hidden");
+
+            document.getElementById(sectionId).classList.remove("hidden");
+
+            if (sectionId === 'createUserSection') {
+                // Limpiar campos al mostrar sección de crear usuario
+                document.getElementById("username").value = '';
+                document.getElementById("email").value = '';
+            } else if (sectionId === 'encryptionSection') {
+                // Limpiar el campo de usuario en la sección de encriptar
+                document.getElementById("encryptionUser").value = ''; 
+                document.getElementById("passwordToEncrypt").value = ''; // Limpiar contraseña
+            } else if (sectionId === 'loginSection') {
+                // Limpiar campos al mostrar sección de iniciar sesión
+                document.getElementById("loginUser").value = ''; 
+                document.getElementById("loginPassword").value = ''; 
+            }
+        }
+
+        document.getElementById("createUserForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            let username = document.getElementById("username").value;
+            let email = document.getElementById("email").value;
+
+            fetch('/create-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, email: email })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('ID de usuario creado:', data.userId); // Imprimir ID de usuario
+                currentUsername = data.userId; // Guardar el userId
+                showSection('encryptionSection');
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
         document.getElementById("encryptionForm").addEventListener("submit", function(event) {
             event.preventDefault();
+            let password = document.getElementById("passwordToEncrypt").value;
 
-            // Obtener la contraseña del formulario
-            var password = document.getElementById("password").value;
+            console.log('ID de usuario para encriptar:', currentUsername);
 
-            // Enviar la contraseña al servidor para encriptar
             fetch('/encrypt-password', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: new URLSearchParams({ password: password })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUsername, password: password })
             })
-            .then(response => response.text())
-            .then(result => {
-                // Mostrar el mensaje de éxito
-                document.getElementById("successMessage").classList.remove("hidden");
+            .then(response => response.json())
+            .then(data => {
+                if (data.encryptedPassword) {
+                    document.getElementById("encryptionSuccessMessage").classList.remove("hidden");
+                } else {
+                    document.getElementById("encryptionErrorMessage").innerText = data.error;
+                    document.getElementById("encryptionErrorMessage").classList.remove("hidden");
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
 
-                // Vaciar el campo de la contraseña (para hacer que los puntos desaparezcan)
-                document.getElementById("password").value = '';
+        document.getElementById("loginForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            let user = document.getElementById("loginUser").value;
+            let password = document.getElementById("loginPassword").value;
+
+            fetch('/check-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user, password: password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById("loginSuccessMessage").classList.remove("hidden");
+                    document.getElementById("loginErrorMessage").classList.add("hidden");
+                } else {
+                    document.getElementById("loginErrorMessage").classList.remove("hidden");
+                }
             })
             .catch(error => console.error('Error:', error));
         });
     </script>
-
 </body>
 </html>
