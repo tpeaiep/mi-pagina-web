@@ -12,6 +12,12 @@ app.use(express.static('public'));
 
 const db = initDatabase();
 
+// Estructura en memoria para controlar intentos fallidos y bloqueo
+const loginAttempts = {}; // { username: { attempts: 0, lockedUntil: Date } }
+
+// Tiempo de bloqueo (en milisegundos)
+const LOCK_TIME = 5 * 60 * 1000; // 5 minutos
+
 // Funciones de validación
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const isValidUsername = (username) => /^[a-zA-Z0-9]+$/.test(username);
@@ -73,18 +79,42 @@ app.post('/check-password', async (req, res) => {
             return res.status(400).json({ success: false, message: 'El usuario y la contraseña son obligatorios.' });
         }
 
+        // Revisar si el usuario está bloqueado
+        const userAttempts = loginAttempts[username] || { attempts: 0, lockedUntil: null };
+        if (userAttempts.lockedUntil && new Date() < userAttempts.lockedUntil) {
+            return res.status(403).json({
+                success: false,
+                message: 'La cuenta está bloqueada. Inténtelo más tarde.',
+            });
+        }
+
         const userRow = await getUserByUsername(db, username);
-        if (!userRow) { // Validación más explícita para cuando el usuario no existe
+        if (!userRow) {
             console.log('Usuario no encontrado en la base de datos.');
-            return res.status(404).json({ success: false, message: 'El usuario no existe. Por favor, registrese.' });
+            return res.status(404).json({ success: false, message: 'El usuario no existe. Por favor, regístrese.' });
         }
 
         const match = await comparePassword(password, userRow.password);
         if (match) {
-            res.json({ success: true, message: 'Inicio de sesión exitoso.' });
+            // Restablecer intentos después de inicio de sesión exitoso
+            delete loginAttempts[username];
+            return res.json({ success: true, message: 'Inicio de sesión exitoso.' });
         } else {
             console.log('Las contraseñas no coinciden.');
-            res.json({ success: false, message: 'Contraseña incorrecta.' });
+
+            // Incrementar intentos fallidos
+            userAttempts.attempts = (userAttempts.attempts || 0) + 1;
+            if (userAttempts.attempts >= 3) {
+                userAttempts.lockedUntil = new Date(Date.now() + LOCK_TIME);
+                loginAttempts[username] = userAttempts;
+                return res.status(403).json({
+                    success: false,
+                    message: 'Demasiados intentos fallidos. La cuenta está bloqueada por 5 minutos.',
+                });
+            }
+
+            loginAttempts[username] = userAttempts;
+            return res.json({ success: false, message: 'Contraseña incorrecta.' });
         }
     } catch (error) {
         console.error('Error al verificar la contraseña:', error);
