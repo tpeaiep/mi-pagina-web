@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Encryption Web</title>
+    <style>
+        body {
+            background: url('tipos-de-sistemas-de-encriptacion-de-datos.jpg') no-repeat center center fixed;
+            background-size: cover;
+            background-blend-mode: overlay;
+            background-color: rgba(45, 3, 59, 0.8);
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .container {
+            margin-top: 50px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        input[type="password"], input[type="text"], input[type="email"] {
+            width: 300px;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #d3c5ff;
+            color: black;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #bfa2ff;
+        }
+        .hidden {
+            display: none;
+        }
+        .error {
+            color: red;
+            margin-top: 20px;
+        }
+        h1 {
+            cursor: pointer;
+            display: inline-block;
+            margin-right: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px;
+        }
+        #popup-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 18px;
+            z-index: 1000;
+            display: none;
+        }
+        #popup-message.visible {
+            display: block;
+        }
+        #popup-message.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="popup-message" class="hidden"></div>
+
+    <div class="header">
+        <h1 onclick="showSection('createUserSection')">Password Encryption Web</h1>
+        <div>
+            <button onclick="showSection('encryptionSection')">Encriptar Contraseña</button>
+            <button onclick="showSection('loginSection')">Iniciar Sesión</button>
+        </div>
+    </div>
+    <div class="container" id="createUserSection">
+        <h2>Crear Usuario</h2>
+        <form id="createUserForm">
+            <input type="text" id="username" placeholder="Nombre de Usuario" required><br>
+            <input type="email" id="email" placeholder="Correo Electrónico" required><br>
+            <button type="submit">Crear Usuario</button>
+        </form>
+    </div>
+
+    <div class="container hidden" id="encryptionSection">
+        <h2>Encriptar Contraseña</h2>
+        <form id="encryptionForm">
+            <input type="text" id="encryptionUser" placeholder="Nombre de Usuario" required value=""><br>
+            <input type="password" id="passwordToEncrypt" placeholder="Contraseña a Encriptar" required><br>
+            <button type="submit">Encriptar</button>
+        </form>
+    </div>
+
+    <div class="container hidden" id="loginSection">
+        <h2>Iniciar Sesión</h2>
+        <form id="loginForm">
+            <input type="text" id="loginUser" placeholder="Usuario" required><br>
+            <input type="password" id="loginPassword" placeholder="Contraseña" required><br>
+            <button type="submit">Iniciar Sesión</button>
+        </form>
+    </div>
+
+    <script>
+        let currentUsername = '';
+
+        function showPopupMessage(message, isSuccess = true) {
+            const popup = document.getElementById('popup-message');
+            popup.textContent = message;
+            popup.style.backgroundColor = isSuccess ? 'rgba(0, 128, 0, 0.8)' : 'rgba(255, 0, 0, 0.8)';
+            popup.classList.remove('hidden');
+            popup.classList.add('visible');
+            setTimeout(() => {
+                popup.classList.remove('visible');
+                popup.classList.add('hidden');
+            }, 3000);
+        }
+
+        function showSection(sectionId) {
+            document.getElementById('createUserSection').classList.add("hidden");
+            document.getElementById('encryptionSection').classList.add("hidden");
+            document.getElementById('loginSection').classList.add("hidden");
+            document.getElementById(sectionId).classList.remove("hidden");
+
+
+            if (sectionId === 'createUserSection') {
+                // Limpiar campos al mostrar sección de crear usuario
+                document.getElementById("username").value = '';
+                document.getElementById("email").value = '';
+            } else if (sectionId === 'encryptionSection') {
+                // Limpiar el campo de usuario en la sección de encriptar
+                document.getElementById("encryptionUser").value = ''; 
+                document.getElementById("passwordToEncrypt").value = ''; // Limpiar contraseña
+            } else if (sectionId === 'loginSection') {
+                // Limpiar campos al mostrar sección de iniciar sesión
+                document.getElementById("loginUser").value = ''; 
+                document.getElementById("loginPassword").value = ''; 
+            }
+            
+        }
+
+        document.getElementById("createUserForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            let username = document.getElementById("username").value;
+            let email = document.getElementById("email").value;
+
+            try {
+                const response = await fetch('/create-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentUsername = data.userId;
+                    showPopupMessage(`Usuario creado con éxito.`, true);
+                    showSection('encryptionSection');
+                } else {
+                    const error = await response.text();
+                    showPopupMessage(`Error: ${error}`, false);
+                }
+            } catch (error) {
+                showPopupMessage(`Error al crear usuario: ${error.message}`, false);
+            }
+        });
+
+        document.getElementById("encryptionForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            let password = document.getElementById("passwordToEncrypt").value;
+
+            try {
+                const response = await fetch('/encrypt-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: currentUsername, password: password })
+                });
+
+                const data = await response.json();
+                if (data.encryptedPassword) {
+                    showPopupMessage('Contraseña encriptada exitosamente', true);
+                } else {
+                    showPopupMessage(`Error: ${data.error}`, false);
+                }
+            } catch (error) {
+                showPopupMessage(`Error al encriptar contraseña: ${error.message}`, false);
+            }
+        });
+
+        document.getElementById("loginForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            let user = document.getElementById("loginUser").value;
+            let password = document.getElementById("loginPassword").value;
+
+            try {
+                const response = await fetch('/check-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: password })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showPopupMessage('Inicio de sesión exitoso', true);
+                } else {
+                    showPopupMessage(data.message || 'Credenciales incorrectas', false);
+                }
+            } catch (error) {
+                showPopupMessage(`Error al iniciar sesión: ${error.message}`, false);
+            }
+        });
+    </script>
+</body>
+</html>

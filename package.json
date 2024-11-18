@@ -1,0 +1,22 @@
+{
+  "name": "password-encryption-web",
+  "version": "1.1.6",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "tpeaiep",
+  "license": "ISC",
+  "description": "Un paquete para encriptar las contraseñas y almacenarlas en una base de datos",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.3",
+    "express": "^4.21.0",
+    "git": "^0.1.5",
+    "sqlite3": "^5.1.7"
+  },
+  "directories": {
+    "lib": "lib"
+  }
+}
