@@ -54,6 +54,7 @@ app.post('/encrypt-password', async (req, res) => {
             return res.status(400).json({ error: 'Usuario inválido' });
         }
 
+
         const hashedPassword = await encryptPassword(password);
         console.log(`Contraseña encriptada para el usuario ${userId}: ${hashedPassword}`); // Agregar log
         await savePassword(db, userId, hashedPassword);
